@@ -37,7 +37,11 @@
     @brief  Instantiates a new MCP4726 class
 */
 /**************************************************************************/
-MCP4726::MCP4726() {
+MCP4726::MCP4726(uint8_t a_vrefBits, uint8_t a_powerDownBits, uint8_t a_gainBits) 
+   : m_vrefBits(a_vrefBits)
+   , m_powerDownBits(a_powerDownBits)
+   , m_gainBits(a_gainBits)
+{
 }
 
 /**************************************************************************/
@@ -48,6 +52,8 @@ MCP4726::MCP4726() {
 void MCP4726::begin(uint8_t addr) {
   _i2caddr = addr;
   Wire.begin();
+
+  writeVolatileMemory(m_vrefBits, m_powerDownBits, m_gainBits, 0);
 
 }
  
@@ -63,12 +69,35 @@ void MCP4726::begin(uint8_t addr) {
 /**************************************************************************/
 void MCP4726::setVoltage( uint16_t output)
 {
-  uint8_t twbrback = TWBR;
-    TWBR = 12; // 400 khz
-  //  TWBR = 72; // 100 khz
-  Wire.beginTransmission(_i2caddr);
-  Wire.write((uint8_t) ((output >> 8) & 0x0F));   // MSB: (D11, D10, D9, D8) 
-  Wire.write((uint8_t) (output));  // LSB: (D7, D6, D5, D4, D3, D2, D1, D0)
-  Wire.endTransmission();
-  TWBR = twbrback;
+  writeVolatileDACRegister(m_powerDownBits, output);
+}
+
+void MCP4726::writeVolatileDACRegister(uint8_t a_powerDown, uint16_t a_value)
+{
+   uint8_t toTransmit[2];
+
+   toTransmit[0] = ((a_powerDown << 4) & 0x30) | ((a_value >> 8) & 0x0f);
+   toTransmit[1] = a_value & 0x00ff;
+
+   write(toTransmit, 2);
+}
+
+void MCP4726::writeVolatileMemory(uint8_t a_vref, uint8_t a_powerDown, uint8_t a_gain, uint16_t a_value)
+{
+   uint8_t toTransmit[3];
+
+   toTransmit[0] = ((0b010 << 5) & 0xe0) | ((a_vref << 2) & 0x18) | ((a_powerDown << 1) & 0x6) | (a_gain & 0x01);
+   toTransmit[1] = (a_value >> 8) & 0x00ff;
+   toTransmit[2] = a_value & 0x00ff;
+
+   write(toTransmit, 3);
+}
+
+void MCP4726::write(uint8_t* a_data, uint8_t a_size)
+{
+   Wire.beginTransmission(_i2caddr);
+   for(uint8_t i = 0; i < a_size; i++)
+   {
+      Wire.write(a_data[i]);
+   }
 }
