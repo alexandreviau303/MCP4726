@@ -86,7 +86,7 @@ void MCP4726::writeVolatileMemory(uint8_t a_vref, uint8_t a_powerDown, uint8_t a
 {
    uint8_t toTransmit[3];
 
-   toTransmit[0] = ((0b010 << 5) & 0xe0) | ((a_vref << 2) & 0x18) | ((a_powerDown << 1) & 0x6) | (a_gain & 0x01);
+   toTransmit[0] = ((0b010 << 5) & 0xe0) | ((a_vref << 3) & 0x18) | ((a_powerDown << 1) & 0x6) | (a_gain & 0x01);
    toTransmit[1] = (a_value >> 8) & 0x00ff;
    toTransmit[2] = a_value & 0x00ff;
 
@@ -100,4 +100,5 @@ void MCP4726::write(uint8_t* a_data, uint8_t a_size)
    {
       Wire.write(a_data[i]);
    }
+   Wire.endTransmission();
 }
